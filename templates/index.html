@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gastos</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ["Inter", "ui-sans-serif", "system-ui"],
+            mono: ["JetBrains Mono", "ui-monospace", "monospace"],
+          },
+        },
+      },
+    };
+  </script>
+</head>
+<body class="min-h-screen bg-[#fafafa] text-zinc-900 antialiased">
+  <div class="mx-auto max-w-6xl px-5 py-8 sm:px-8 sm:py-12">
+    <header class="mb-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <p class="text-xs font-medium uppercase tracking-[0.16em] text-zinc-400">Tracker</p>
+        <h1 class="mt-1 text-2xl font-semibold tracking-tight">Gastos</h1>
+      </div>
+      <div class="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onclick="document.getElementById('export-dialog').showModal()"
+          class="rounded-lg border border-zinc-200 bg-white px-3.5 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
+        >
+          Exportar
+        </button>
+        <form method="post" action="/sincronizar" onsubmit="this.querySelector('button').disabled=true; this.querySelector('button').textContent='Sincronizando…'">
+          <button type="submit" class="rounded-lg bg-zinc-900 px-3.5 py-2 text-sm font-medium text-white hover:bg-zinc-800">
+            Sincronizar emails
+          </button>
+        </form>
+      </div>
+    </header>
+
+    <section class="mb-10 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      <article class="rounded-xl border border-zinc-200/80 bg-white p-5">
+        <p class="text-sm text-zinc-500">Gastos hoy</p>
+        <p class="mt-3 text-2xl font-semibold tracking-tight">₡{{ "{:,.2f}".format(kpis.today.crc) }}</p>
+        <p class="mt-1 text-sm text-zinc-400">${{ "{:,.2f}".format(kpis.today.usd) }}</p>
+        {% if kpis.today.change > 0 %}
+          <p class="mt-3 text-xs font-medium text-rose-600">{{ "%.0f"|format(kpis.today.change) }}% más que {{ kpis.today.compare }}</p>
+        {% elif kpis.today.change < 0 %}
+          <p class="mt-3 text-xs font-medium text-emerald-600">{{ "%.0f"|format(kpis.today.change|abs) }}% menos que {{ kpis.today.compare }}</p>
+        {% else %}
+          <p class="mt-3 text-xs font-medium text-zinc-400">Igual que {{ kpis.today.compare }}</p>
+        {% endif %}
+      </article>
+
+      <article class="rounded-xl border border-zinc-200/80 bg-white p-5">
+        <p class="text-sm text-zinc-500">Gastos esta semana</p>
+        <p class="mt-3 text-2xl font-semibold tracking-tight">₡{{ "{:,.2f}".format(kpis.week.crc) }}</p>
+        <p class="mt-1 text-sm text-zinc-400">${{ "{:,.2f}".format(kpis.week.usd) }}</p>
+        {% if kpis.week.change > 0 %}
+          <p class="mt-3 text-xs font-medium text-rose-600">{{ "%.0f"|format(kpis.week.change) }}% más que {{ kpis.week.compare }}</p>
+        {% elif kpis.week.change < 0 %}
+          <p class="mt-3 text-xs font-medium text-emerald-600">{{ "%.0f"|format(kpis.week.change|abs) }}% menos que {{ kpis.week.compare }}</p>
+        {% else %}
+          <p class="mt-3 text-xs font-medium text-zinc-400">Igual que {{ kpis.week.compare }}</p>
+        {% endif %}
+      </article>
+
+      <article class="rounded-xl border border-zinc-200/80 bg-white p-5">
+        <p class="text-sm text-zinc-500">Gastos este mes</p>
+        <p class="mt-3 text-2xl font-semibold tracking-tight">₡{{ "{:,.2f}".format(kpis.month.crc) }}</p>
+        <p class="mt-1 text-sm text-zinc-400">${{ "{:,.2f}".format(kpis.month.usd) }}</p>
+        {% if kpis.month.change > 0 %}
+          <p class="mt-3 text-xs font-medium text-rose-600">{{ "%.0f"|format(kpis.month.change) }}% más que {{ kpis.month.compare }}</p>
+        {% elif kpis.month.change < 0 %}
+          <p class="mt-3 text-xs font-medium text-emerald-600">{{ "%.0f"|format(kpis.month.change|abs) }}% menos que {{ kpis.month.compare }}</p>
+        {% else %}
+          <p class="mt-3 text-xs font-medium text-zinc-400">Igual que {{ kpis.month.compare }}</p>
+        {% endif %}
+      </article>
+    </section>
+
+    <section class="rounded-xl border border-zinc-200/80 bg-white">
+      <div class="flex flex-col gap-3 border-b border-zinc-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <h2 class="text-sm font-medium text-zinc-900">Movimientos recientes</h2>
+        <label class="flex items-center gap-2 text-sm text-zinc-500">
+          Mostrar
+          <select
+            class="rounded-md border border-zinc-200 bg-white px-2 py-1.5 text-sm text-zinc-800"
+            onchange="window.location='/?limit=' + this.value"
+          >
+            {% for option in limit_options %}
+              <option value="{{ option }}" {% if option == limit %}selected{% endif %}>{{ option }}</option>
+            {% endfor %}
+          </select>
+        </label>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="min-w-full text-left text-xs">
+          <thead>
+            <tr class="border-b border-zinc-100 text-xs uppercase tracking-wide text-zinc-400">
+              <th class="px-5 py-3 font-medium">Fecha</th>
+              <th class="px-5 py-3 font-medium">Concepto</th>
+              <th class="px-5 py-3 font-medium">Moneda</th>
+              <th class="px-5 py-3 text-right font-medium">Monto</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if expenses %}
+              {% for row in expenses %}
+                <tr class="border-b border-zinc-50 last:border-0">
+                  <td class="whitespace-nowrap px-5 py-3 font-mono text-zinc-500">{{ row.date_label }}</td>
+                  <td class="px-5 py-3 font-medium text-zinc-900">{{ row.concept }}</td>
+                  <td class="px-5 py-3 text-zinc-500">{{ row.currency }}</td>
+                  <td class="whitespace-nowrap px-5 py-3 text-right font-mono text-zinc-900">
+                    {% if row.currency == "CRC" %}₡{% elif row.currency == "USD" %}${% endif %}{{ row.amount_label }}
+                  </td>
+                </tr>
+              {% endfor %}
+            {% else %}
+              <tr>
+                <td colspan="4" class="px-5 py-10 text-center text-sm text-zinc-400">No hay movimientos.</td>
+              </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <dialog id="export-dialog" class="w-full max-w-sm rounded-xl border border-zinc-200 bg-white p-0 text-zinc-900 backdrop:bg-zinc-900/30">
+    <form method="get" action="/exportar" class="p-5">
+      <h3 class="text-base font-semibold tracking-tight">Exportar</h3>
+      <p class="mt-1 text-sm text-zinc-500">Elegí cantidad y formato.</p>
+
+      <label class="mt-5 block text-sm text-zinc-600">
+        Cantidad
+        <select name="limit" class="mt-1.5 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm">
+          {% for option in export_limit_options %}
+            <option value="{{ option }}" {% if option == limit %}selected{% endif %}>{{ option }}</option>
+          {% endfor %}
+        </select>
+      </label>
+
+      <label class="mt-4 block text-sm text-zinc-600">
+        Formato
+        <select name="format" class="mt-1.5 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm">
+          <option value="xlsx">xlsx</option>
+          <option value="csv">csv</option>
+        </select>
+      </label>
+
+      <div class="mt-6 flex justify-end gap-2">
+        <button type="button" onclick="document.getElementById('export-dialog').close()" class="rounded-lg px-3 py-2 text-sm text-zinc-600 hover:bg-zinc-50">
+          Cancelar
+        </button>
+        <button type="submit" class="rounded-lg bg-zinc-900 px-3.5 py-2 text-sm font-medium text-white hover:bg-zinc-800">
+          Descargar
+        </button>
+      </div>
+    </form>
+  </dialog>
+</body>
+</html>
