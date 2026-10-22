@@ -45,18 +45,15 @@ def fetch_emails():
 
             date = msg.date.isoformat()
             response, used_tokens = process_email(msg.text)
-            if response.is_valid:
-                print(response.concept)
-                insert_expense(
-                    concept=response.concept,
-                    amount=response.amount,
-                    currency=response.currency,
-                    date=date,
-                    message_id=message_id,
-                    used_tokens=used_tokens
-                )
-            else:
-                print("Invalid expense.")
+            insert_expense(
+                concept=response.concept,
+                amount=response.amount,
+                currency=response.currency,
+                date=date,
+                message_id=message_id,
+                used_tokens=used_tokens,
+                is_valid=response.is_valid,
+            )
 
 
 def process_email(msg_body):

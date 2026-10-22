@@ -25,7 +25,8 @@ def create_db():
                 currency TEXT,
                 date TEXT,
                 message_id TEXT UNIQUE,
-                used_tokens INTEGER
+                used_tokens INTEGER,
+                is_valid INTEGER
             )
         """)
         db.commit()
@@ -33,15 +34,15 @@ def create_db():
         db.close()
 
 
-def insert_expense(concept, amount, currency, date, message_id, used_tokens):
+def insert_expense(concept, amount, currency, date, message_id, used_tokens, is_valid):
     db = _connect()
     try:
         db.execute(
             f"""
-            INSERT INTO {DB_NAME} (concept, amount, currency, date, message_id, used_tokens)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO {DB_NAME} (concept, amount, currency, date, message_id, used_tokens, is_valid)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
             """,
-            (concept, amount, currency, date, message_id, used_tokens),
+            (concept, amount, currency, date, message_id, used_tokens, int(is_valid)),
         )
         db.commit()
         print("Inserted.")
@@ -74,12 +75,12 @@ def get_expenses(limit=None):
     db = _connect()
     try:
         if limit is None:
-            sql = f"SELECT * FROM {DB_NAME} ORDER BY date DESC"
+            sql = f"SELECT * FROM {DB_NAME} WHERE is_valid = 1 ORDER BY date DESC"
         else:
             limit = int(limit)
             if limit not in TABLE_LIMITS:
                 limit = DEFAULT_LIMIT
-            sql = f"SELECT * FROM {DB_NAME} ORDER BY date DESC LIMIT {limit}"
+            sql = f"SELECT * FROM {DB_NAME} WHERE is_valid = 1 ORDER BY date DESC LIMIT {limit}"
         return _rows_as_dicts(db.execute(sql))
     finally:
         db.close()
@@ -92,6 +93,7 @@ def get_kpi_rows():
             f"""
             SELECT amount, currency, date
             FROM {DB_NAME}
+            WHERE is_valid = 1
             """
         )
         return _rows_as_dicts(result)
